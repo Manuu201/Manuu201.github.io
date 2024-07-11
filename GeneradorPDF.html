@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generar Informe</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #007bff;
+        }
+        .form-label {
+            font-weight: bold;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            border-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">Generar Informe</h1>
+        <form id="reportForm">
+            <div class="mb-3">
+                <label for="sector" class="form-label">Sector</label>
+                <input type="text" class="form-control" id="sector" required>
+            </div>
+            <div class="mb-3">
+                <label for="observation" class="form-label">Observación</label>
+                <textarea class="form-control" id="observation" rows="3" required></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="evidence" class="form-label">Evidencia</label>
+                <textarea class="form-control" id="evidence" rows="3" required></textarea>
+            </div>
+            <div class="mb-3">
+                <label for="image" class="form-label">Subir Imagen</label>
+                <input type="file" class="form-control" id="image" accept="image/*" required>
+            </div>
+            <button type="button" class="btn btn-primary" onclick="generatePDF()">Generar PDF</button>
+        </form>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        const { jsPDF } = window.jspdf;
+
+        async function generatePDF() {
+            const sector = document.getElementById('sector').value;
+            const observation = document.getElementById('observation').value;
+            const evidence = document.getElementById('evidence').value;
+            const imageFile = document.getElementById('image').files[0];
+
+            const reader = new FileReader();
+
+            reader.onload = function(event) {
+                const imageData = event.target.result;
+
+                const doc = new jsPDF();
+
+                // Añadir un título estilizado
+                doc.setFontSize(22);
+                doc.setTextColor(0, 123, 255);
+                doc.text("Informe de Sector", 105, 20, null, null, "center");
+
+                // Añadir detalles con estilo
+                doc.setFontSize(16);
+                doc.setTextColor(40, 40, 40);
+                doc.text(`Sector:`, 10, 40);
+                doc.setFontSize(14);
+                doc.text(sector, 10, 50);
+
+                doc.setFontSize(16);
+                doc.text(`Observación:`, 10, 70);
+                doc.setFontSize(14);
+                doc.text(observation, 10, 80);
+
+                doc.setFontSize(16);
+                doc.text(`Evidencia:`, 10, 100);
+                doc.setFontSize(14);
+                doc.text(evidence, 10, 110);
+
+                // Añadir imagen con borde
+                doc.addImage(imageData, 'JPEG', 10, 130, 180, 100, null, 'FAST');
+
+                // Añadir pie de página
+                doc.setFontSize(10);
+                doc.setTextColor(150, 150, 150);
+                doc.text("Generado por el sistema de informes", 105, 290, null, null, "center");
+
+                doc.save("informe.pdf");
+            };
+
+            reader.readAsDataURL(imageFile);
+        }
+    </script>
+</body>
+</html>
