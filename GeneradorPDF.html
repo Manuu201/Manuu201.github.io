@@ -8,29 +8,10 @@
     <style>
         body {
             padding: 20px;
-            background-color: #f8f9fa;
         }
         .container {
             max-width: 600px;
             margin: auto;
-            background: #ffffff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        h1 {
-            color: #007bff;
-        }
-        .form-label {
-            font-weight: bold;
-        }
-        .btn-primary {
-            background-color: #007bff;
-            border-color: #007bff;
-        }
-        .btn-primary:hover {
-            background-color: #0056b3;
-            border-color: #0056b3;
         }
     </style>
 </head>
@@ -54,7 +35,12 @@
                 <label for="image" class="form-label">Subir Imagen</label>
                 <input type="file" class="form-control" id="image" accept="image/*" required>
             </div>
+            <div class="mb-3">
+                <label for="email" class="form-label">Correo Electrónico</label>
+                <input type="email" class="form-control" id="email">
+            </div>
             <button type="button" class="btn btn-primary" onclick="generatePDF()">Generar PDF</button>
+            <button type="button" class="btn btn-secondary" onclick="sendEmail()">Enviar por Correo</button>
         </form>
     </div>
 
@@ -63,52 +49,81 @@
         const { jsPDF } = window.jspdf;
 
         async function generatePDF() {
-            const sector = document.getElementById('sector').value;
-            const observation = document.getElementById('observation').value;
-            const evidence = document.getElementById('evidence').value;
-            const imageFile = document.getElementById('image').files[0];
+            const pdf = await createPDF();
+            pdf.save("informe.pdf");
+        }
 
+        async function sendEmail() {
+            const pdf = await createPDF();
+            const email = document.getElementById('email').value;
+            if (!email) {
+                alert('Por favor ingrese un correo electrónico');
+                return;
+            }
+            const pdfBlob = pdf.output('blob');
             const reader = new FileReader();
-
-            reader.onload = function(event) {
-                const imageData = event.target.result;
-
-                const doc = new jsPDF();
-
-                // Añadir un título estilizado
-                doc.setFontSize(22);
-                doc.setTextColor(0, 123, 255);
-                doc.text("Informe de Sector", 105, 20, null, null, "center");
-
-                // Añadir detalles con estilo
-                doc.setFontSize(16);
-                doc.setTextColor(40, 40, 40);
-                doc.text(`Sector:`, 10, 40);
-                doc.setFontSize(14);
-                doc.text(sector, 10, 50);
-
-                doc.setFontSize(16);
-                doc.text(`Observación:`, 10, 70);
-                doc.setFontSize(14);
-                doc.text(observation, 10, 80);
-
-                doc.setFontSize(16);
-                doc.text(`Evidencia:`, 10, 100);
-                doc.setFontSize(14);
-                doc.text(evidence, 10, 110);
-
-                // Añadir imagen con borde
-                doc.addImage(imageData, 'JPEG', 10, 130, 180, 100, null, 'FAST');
-
-                // Añadir pie de página
-                doc.setFontSize(10);
-                doc.setTextColor(150, 150, 150);
-                doc.text("Generado por el sistema de informes", 105, 290, null, null, "center");
-
-                doc.save("informe.pdf");
+            reader.readAsDataURL(pdfBlob);
+            reader.onloadend = function() {
+                const base64data = reader.result.split(',')[1];
+                const data = {
+                    email: email,
+                    pdf: base64data,
+                    filename: 'informe.pdf'
+                };
+                fetch('https://api.mailersend.com/v1/email', {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer mlsn.4507d213810216ca0a8a06bb9c5b4a3c7caee9ba400130c3719251d0738ae78d',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        from: { email: 'tu_nombre@trial-3yxj6ljv3xxldo2r.mlsender.net', name: 'Your Name' },
+                        to: [{ email: email, name: 'Recipient Name' }],
+                        subject: 'Informe Generado',
+                        html: '<p>Adjunto encontrará el informe generado.</p>',
+                        attachments: [{
+                            content: base64data,
+                            filename: 'informe.pdf',
+                            disposition: 'attachment',
+                            content_id: 'pdf'
+                        }]
+                    })
+                }).then(response => response.json()).then(data => {
+                    if (data.success) {
+                        alert('Correo enviado con éxito');
+                    } else {
+                        alert('Error al enviar el correo');
+                    }
+                }).catch(error => {
+                    console.error('Error:', error);
+                    alert('Error al enviar el correo');
+                });
             };
+        }
 
-            reader.readAsDataURL(imageFile);
+        function createPDF() {
+            return new Promise((resolve, reject) => {
+                const sector = document.getElementById('sector').value;
+                const observation = document.getElementById('observation').value;
+                const evidence = document.getElementById('evidence').value;
+                const imageFile = document.getElementById('image').files[0];
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const imageData = event.target.result;
+                    const doc = new jsPDF();
+                    doc.text("Informe de Sector", 10, 10);
+                    doc.text(`Sector: ${sector}`, 10, 20);
+                    doc.text(`Observación: ${observation}`, 10, 30);
+                    doc.text(`Evidencia: ${evidence}`, 10, 40);
+                    doc.addImage(imageData, 'JPEG', 10, 50, 180, 160);
+                    resolve(doc);
+                };
+                reader.onerror = function(event) {
+                    reject(event);
+                };
+                reader.readAsDataURL(imageFile);
+            });
         }
     </script>
 </body>
